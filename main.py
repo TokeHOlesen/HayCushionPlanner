@@ -183,7 +183,7 @@ class Cushion:
             save_button.pack(anchor="w", padx=4, pady=4)
 
 
-# Objects of the Box class contain items to be packaged together in the same box
+# Objects of the Box class contain items to be packaged together in the same box.
 # Inherits from the Cushion class
 class Box(Cushion):
     def __init__(self, list_of_boxes, bartender_path=path_to_bartender_file):

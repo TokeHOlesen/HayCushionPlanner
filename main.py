@@ -1,11 +1,14 @@
+# ver. 1.0 01-09-2023
+
 from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox, scrolledtext
+from tkinter.filedialog import asksaveasfile
 
 # Path to the Bartender database file
 path_to_bartender_file = "./Hay - Hynder.txt"
 
-# A list containing objects of the Box class
+# A container for objects of the Box class
 boxes = []
 
 
@@ -103,15 +106,6 @@ class Cushion:
     def get_color(self, index):
         return self.color[index]
 
-    def get_ean_13(self, index):
-        return self.ean_13[index]
-
-    def get_new_number(self, index):
-        return self.new_number[index]
-
-    def get_number_of_entries(self):
-        return len(self.item_name)
-
     def get_number_to_pack(self, index):
         return self.number_to_pack[index]
 
@@ -120,6 +114,14 @@ class Cushion:
 
     def delete_cushions_to_pack(self, index):
         self.number_to_pack[index] = 0
+
+    def save_text_output(self):
+        text_file = asksaveasfile(defaultextension=".txt",
+                                  filetypes=[("Tekstdokumenter", "*.txt"), ("Alle filer", "*.*")])
+        if text_file is None:
+            return
+        with open(text_file.name, "w") as t_f:
+            t_f.write(self.text_output)
 
     def calculate_and_distribute(self):
         # Resets the number of all cushion types to 0
@@ -140,11 +142,13 @@ class Cushion:
                     if cushion_type in self.old_number[i]:
                         total_space_taken += self.required_space[cushion_type]
         # Puts items in boxes.
-        # If no boxes exist or if the last box in the list is full, adds a new box
+        # If no boxes exist or if the last box in the list is full, creates a new box
         self.boxes = []
         self.boxes.append(Box(self.boxes))
 
-        if total_space_taken <= 10000:
+        if total_space_taken == 0:
+            messagebox.showwarning("Fejl", "Ingen varer valgt.")
+        elif 0 < total_space_taken <= 10000:
             messagebox.showinfo("HAY Hynder", "Det hele kan være i én kasse.")
         else:
             self.text_output = ""
@@ -156,21 +160,27 @@ class Cushion:
                     else:
                         self.boxes.append(Box(boxes))
             for i, box in enumerate(self.boxes):
-                self.text_output += f"Kasse {i + 1} ({int(box.room_used() / 100)}%):\n\n"
+                self.text_output += f"Kasse {i + 1} ({box.room_used() // 100}%):\n\n"
                 for y in range(len(self.boxes[i].old_number)):
                     if self.boxes[i].in_this_box[y]:
                         self.text_output += (f"{self.boxes[i].old_number[y]} - {self.boxes[i].item_name[y]} - "
                                              f"{self.boxes[i].color[y]} x {self.boxes[i].in_this_box[y]} stk\n")
                 self.text_output += "\n\n"
+            self.text_output = self.text_output[:-3]
+
+            # Spawns a new window with the final results
             results_window = Toplevel(window)
             results_window.title("Pakningsinstrukser")
-            results_window.geometry("800x500")
+            results_window.geometry("660x500")
+            results_window.iconbitmap("./box.ico")
             results_window.focus_set()
             results_window.grab_set()
             text_output_area = scrolledtext.ScrolledText(results_window, font=("Segoe UI", "9"))
-            text_output_area.pack(padx=12, pady=12, fill=BOTH, expand=TRUE)
+            text_output_area.pack(padx=4, pady=4, fill=BOTH, expand=TRUE)
             text_output_area.insert("end", self.text_output)
             text_output_area.config(state=DISABLED)
+            save_button = Button(results_window, text="Gem", width=12, command=self.save_text_output)
+            save_button.pack(anchor="w", padx=4, pady=4)
 
 
 # Objects of the Box class contain items to be packaged together in the same box
@@ -183,40 +193,6 @@ class Box(Cushion):
         for i in range(len(self.bartender_entries)):
             if "Set of 2" not in self.bartender_entries[i]:
                 self.in_this_box.append(0)
-
-        # Not currently in use - missing data (the 1s are placeholders)
-        self.number_per_label = {
-            "812094": 1,
-            "376191": 1,
-            "812095": 1,
-            "376193": 1,
-            "812096": 1,
-            "376195": 1,
-            "812097": 1,
-            "376197": 1,
-            "812098": 1,
-            "376199": 1,
-            "812099": 1,
-            "376210": 1,
-            "812100": 1,
-            "376211": 1,
-            "812221": 1,
-            "376201": 1,
-            "812223": 1,
-            "376203": 1,
-            "812225": 1,
-            "376205": 1,
-            "812227": 1,
-            "376207": 1,
-            "812229": 1,
-            "376209": 1,
-            "943219": 1,
-            "943238": 1,
-            "943220": 1,
-            "943239": 1,
-            "943232": 1,
-            "943241": 1
-        }
 
     # How much space is currently used
     def room_used(self):
@@ -233,7 +209,6 @@ class Box(Cushion):
         return 10000 - self.room_used()
 
 
-# Runs when the "Tilføj" button is pressed.
 # Adds the chosen type and amount to the listbox.
 # The data isn't added anywhere else yet at this point
 def add_cushions():
@@ -243,13 +218,16 @@ def add_cushions():
     else:
         number_entry_box.delete(0, END)
         number_entry_box.focus_set()
-        messagebox.showwarning("HAY Hynder", "Indtast antal\n(1 - 1000).")
+        messagebox.showwarning("Fejl", "Indtast antal\n(1 - 1000).")
 
 
 # Runs when the "Slet" button is pressed.
 # Deletes the currently selected Listbox item
 def delete_cushions():
-    cushions_listbox.delete(cushions_listbox.curselection())
+    if cushions_listbox.curselection():
+        cushions_listbox.delete(cushions_listbox.curselection())
+    else:
+        messagebox.showwarning("Fejl", "Ingen varer valgt.")
 
 
 # Builds an object of the main "Cushion" class
@@ -258,7 +236,7 @@ cushions = Cushion(boxes, path_to_bartender_file)
 # Builds elements of the dropdown list
 cushions_drop_down_entries = []
 
-for cushion in range(cushions.get_number_of_entries()):
+for cushion in range(len(cushions.old_number)):
     cushion_entry = ""
     cushion_entry += cushions.get_old_number(cushion) + " - "
     cushion_entry += cushions.get_item_name(cushion) + " - "
@@ -271,44 +249,62 @@ for cushion in range(cushions.get_number_of_entries()):
 
     cushions_drop_down_entries.append(cushion_entry)
 
+
+# Adds chosen items to the listbox and moves focus back to the dropdown list
+def add_and_return_focus():
+    add_cushions()
+    cushions_drop_down_list.focus_set()
+
+
 # GUI
 
 window = Tk()
 window.resizable(False, False)
 window.geometry(f"658x427+{window.winfo_screenwidth() // 2 - 250}+{window.winfo_screenheight() // 4}")
-window.title("Hyndeplanlægger")
+window.title("Planlæg pakning af hynder")
+window.iconbitmap("./box.ico")
 
 cushion_input_frame = Frame(window)
 
 cushions_drop_down_list = ttk.Combobox(cushion_input_frame, values=cushions_drop_down_entries, width=80)
 cushions_drop_down_list.set(cushions_drop_down_entries[0])
 cushions_drop_down_list["state"] = "readonly"
+cushions_drop_down_list.bind("<Return>", lambda event: number_entry_box.focus_set())
+cushions_drop_down_list.bind("<Right>", lambda event: number_entry_box.focus_set())
 cushions_drop_down_list.grid(row=0, column=0, padx=10)
+cushions_drop_down_list.focus_set()
 
 number_entry_box = Entry(cushion_input_frame, width=5)
+number_entry_box.bind("<Return>", lambda event: add_and_return_focus())
+number_entry_box.bind("<Left>", lambda event: cushions_drop_down_list.focus_set())
+number_entry_box.bind("<Right>", lambda event: add_button.focus_set())
 number_entry_box.grid(row=0, column=1, padx=8)
 
 add_button = Button(cushion_input_frame, text="Tilføj", width=6, command=add_cushions)
+add_button.bind("<Return>", lambda event: add_and_return_focus())
+add_button.bind("<Left>", lambda event: number_entry_box.focus_set())
 add_button.grid(row=0, column=2, padx=10)
 
 cushions_listbox = Listbox(window, width=101, height=20)
 
 listbox_scrollbar = Scrollbar(window)
 
-cushions_listbox.config(yscrollcommand=listbox_scrollbar.set)
+cushions_listbox.config(yscrollcommand=listbox_scrollbar.set, takefocus=False)
 
 listbox_scrollbar.config(command=cushions_listbox.yview)
 
 bottom_buttons_frame = Frame(window)
 
-delete_button = Button(bottom_buttons_frame, text="Slet", width=6, command=delete_cushions)
-delete_button.grid(row=0, column=0, pady=12)
+calculate_button = Button(bottom_buttons_frame, text="Udregn", width=16, command=cushions.calculate_and_distribute)
+calculate_button.bind("<Return>", lambda event: cushions.calculate_and_distribute())
+calculate_button.grid(row=0, column=2, pady=8)
 
 ghost_label = Label(bottom_buttons_frame, text="")
 ghost_label.grid(row=0, column=1, padx=224)
 
-calculate_button = Button(bottom_buttons_frame, text="Udregn", width=16, command=cushions.calculate_and_distribute)
-calculate_button.grid(row=0, column=2, pady=8)
+delete_button = Button(bottom_buttons_frame, text="Slet", width=6, command=delete_cushions)
+delete_button.bind("<Return>", lambda event: delete_cushions())
+delete_button.grid(row=0, column=0, pady=12)
 
 cushion_input_frame.pack(pady=12)
 cushions_listbox.pack(anchor="w", padx=15)

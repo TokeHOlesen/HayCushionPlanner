@@ -12,6 +12,10 @@ path_to_bartender_file = "./Hay - Hynder.txt"
 boxes = []
 
 
+# Note: this class contains multiple lists with the properties of all the known items (name, item number,
+# color etc.). All those lists have a shared index (so you can look up a property of an item if you know the index of
+# another property - e.g. if you know the index of the item number, you can pass that same index to the "description"
+# getter method. All getter methods require an index).
 class Cushion:
     # Note: list_of_boxes gets passed as reference
     def __init__(self, list_of_boxes, bartender_path):
@@ -106,14 +110,9 @@ class Cushion:
     def get_color(self, index):
         return self.color[index]
 
-    def get_number_to_pack(self, index):
-        return self.number_to_pack[index]
-
+    # Updates the number of cushions at the entered index to be packed
     def add_cushions_to_pack(self, index, number):
         self.number_to_pack[index] = number
-
-    def delete_cushions_to_pack(self, index):
-        self.number_to_pack[index] = 0
 
     def save_text_output(self):
         text_file = asksaveasfile(defaultextension=".txt",
@@ -194,7 +193,7 @@ class Box(Cushion):
             if "Set of 2" not in self.bartender_entries[i]:
                 self.in_this_box.append(0)
 
-    # How much space is currently used
+    # How much space is currently being used
     def room_used(self):
         total_room_in_this_box = 0
         for i in range(len(self.in_this_box)):
@@ -230,7 +229,7 @@ def delete_cushions():
         messagebox.showwarning("Fejl", "Ingen varer valgt.")
 
 
-# Builds an object of the main "Cushion" class
+# Builds an object of the main Cushion class
 cushions = Cushion(boxes, path_to_bartender_file)
 
 # Builds elements of the dropdown list
@@ -258,14 +257,18 @@ def add_and_return_focus():
 
 # GUI
 
+# Main window properties
 window = Tk()
 window.resizable(False, False)
 window.geometry(f"658x427+{window.winfo_screenwidth() // 2 - 250}+{window.winfo_screenheight() // 4}")
 window.title("Planlæg pakning af hynder")
 window.iconbitmap("./box.ico")
 
+# A container for the elements used to input data - cushion selection dropdown menu, number entry box and the
+# "add" button
 cushion_input_frame = Frame(window)
 
+# A dropdown list containing all known cushion types
 cushions_drop_down_list = ttk.Combobox(cushion_input_frame, values=cushions_drop_down_entries, width=80)
 cushions_drop_down_list.set(cushions_drop_down_entries[0])
 cushions_drop_down_list["state"] = "readonly"
@@ -274,38 +277,45 @@ cushions_drop_down_list.bind("<Right>", lambda event: number_entry_box.focus_set
 cushions_drop_down_list.grid(row=0, column=0, padx=10)
 cushions_drop_down_list.focus_set()
 
+# An entry box for entering the required number of a given type of cushion
 number_entry_box = Entry(cushion_input_frame, width=5)
 number_entry_box.bind("<Return>", lambda event: add_and_return_focus())
 number_entry_box.bind("<Left>", lambda event: cushions_drop_down_list.focus_set())
 number_entry_box.bind("<Right>", lambda event: add_button.focus_set())
 number_entry_box.grid(row=0, column=1, padx=8)
 
+# When pressed, adds the entered amount of the chosen type of cushions to the listbox (and litbox only)
 add_button = Button(cushion_input_frame, text="Tilføj", width=6, command=add_cushions)
 add_button.bind("<Return>", lambda event: add_and_return_focus())
 add_button.bind("<Left>", lambda event: number_entry_box.focus_set())
 add_button.grid(row=0, column=2, padx=10)
 
+# The listbox is a view of all the selected items
 cushions_listbox = Listbox(window, width=101, height=20)
 
+# Adds a scrollbar to the listbox view
 listbox_scrollbar = Scrollbar(window)
-
 cushions_listbox.config(yscrollcommand=listbox_scrollbar.set, takefocus=False)
-
 listbox_scrollbar.config(command=cushions_listbox.yview)
 
+# A container for the "Udregn" and "Slet" buttons at the bottom of the window
 bottom_buttons_frame = Frame(window)
 
+# When pressed, runs the main method of the Cushions class and builds a list of Box class objects, one for each box
 calculate_button = Button(bottom_buttons_frame, text="Udregn", width=16, command=cushions.calculate_and_distribute)
 calculate_button.bind("<Return>", lambda event: cushions.calculate_and_distribute())
 calculate_button.grid(row=0, column=2, pady=8)
 
+# An invisible label inserted between the "Udregn" and "Slet" buttons, for layout purposes only
 ghost_label = Label(bottom_buttons_frame, text="")
 ghost_label.grid(row=0, column=1, padx=224)
 
+# When pressed, removes the selected line from the listbox
 delete_button = Button(bottom_buttons_frame, text="Slet", width=6, command=delete_cushions)
 delete_button.bind("<Return>", lambda event: delete_cushions())
 delete_button.grid(row=0, column=0, pady=12)
 
+# Placement of UI element containers
 cushion_input_frame.pack(pady=12)
 cushions_listbox.pack(anchor="w", padx=15)
 listbox_scrollbar.place(x=624, y=50, height=322)

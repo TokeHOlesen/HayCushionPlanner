@@ -37,9 +37,9 @@ class Cushion:
         self.ean_13 = []
         self.new_number = []
         self.number_to_pack = []
-        for i in range(len(self.bartender_entries)):
-            if "Set of 2" not in self.bartender_entries[i]:
-                this_entry = self.bartender_entries[i].split(";")
+        for entry in self.bartender_entries:
+            if "Set of 2" not in entry:
+                this_entry = entry.split(";")
                 self.old_number.append(this_entry[0])
                 self.item_name.append(this_entry[1])
                 self.color.append(this_entry[2])
@@ -82,23 +82,23 @@ class Cushion:
         }
 
         # A list containing space requirement of the given item type (index corresponds to other lists)
-        self.space_req_by_type = []
+        self.space_req_at_this_index = []
 
         # Fills the empty list with "0" values
-        for i in range(len(self.old_number)):
-            self.space_req_by_type.append(0)
+        for _ in self.old_number:
+            self.space_req_at_this_index.append(0)
 
         # Adjusts the values according to those found in required_space
-        for i in range(len(self.old_number)):
+        for i, old_number in enumerate(self.old_number):
             for number in self.required_space:
-                if number in self.old_number[i]:
-                    self.space_req_by_type[i] = self.required_space[number]
+                if number in old_number:
+                    self.space_req_at_this_index[i] = self.required_space[number]
 
     # Accepts an old item number and returns the index of the corresponding item.
     # This index works for all other lists in this class
     def get_index_by_old_number(self, old_number):
-        for i in range(len(self.old_number)):
-            if self.old_number[i] == old_number:
+        for i, number in enumerate(self.old_number):
+            if number == old_number:
                 return i
 
     def get_old_number(self, index):
@@ -124,7 +124,7 @@ class Cushion:
 
     def calculate_and_distribute(self):
         # Resets the number of all cushion types to 0
-        for i in range(len(self.number_to_pack)):
+        for i, _ in enumerate(self.number_to_pack):
             self.number_to_pack[i] = 0
         # Iterates through all string items in the listbox, splits each string into lists.
         # Index [0] corresponds to old item number, [-2] to number of items.
@@ -135,8 +135,8 @@ class Cushion:
             cushions.add_cushions_to_pack(cushions.get_index_by_old_number(split_string[0]), int(split_string[-2]))
         # Calculates total space required by all items
         total_space_taken = 0
-        for i in range(len(self.number_to_pack)):
-            for y in range(self.number_to_pack[i]):
+        for i, pack_this_many in enumerate(self.number_to_pack):
+            for y in range(pack_this_many):
                 for cushion_type in self.required_space:
                     if cushion_type in self.old_number[i]:
                         total_space_taken += self.required_space[cushion_type]
@@ -151,9 +151,9 @@ class Cushion:
             messagebox.showinfo("HAY Hynder", "Det hele kan være i én kasse.")
         else:
             self.text_output = ""
-            for i in range(len(self.old_number)):
+            for i, _ in enumerate(self.old_number):
                 while self.number_to_pack[i] > 0:
-                    if self.boxes[-1].room_left() >= self.space_req_by_type[i]:
+                    if self.boxes[-1].room_left() >= self.space_req_at_this_index[i]:
                         self.boxes[-1].in_this_box[i] += 1
                         self.number_to_pack[i] -= 1
                     else:
@@ -189,15 +189,15 @@ class Box(Cushion):
         super().__init__(list_of_boxes, bartender_path)
         self.in_this_box = []
 
-        for i in range(len(self.bartender_entries)):
-            if "Set of 2" not in self.bartender_entries[i]:
+        for entry in self.bartender_entries:
+            if "Set of 2" not in entry:
                 self.in_this_box.append(0)
 
     # How much space is currently being used
     def room_used(self):
         total_room_in_this_box = 0
-        for i in range(len(self.in_this_box)):
-            for y in range(self.in_this_box[i]):
+        for i, amount_in_this_box in enumerate(self.in_this_box):
+            for _ in range(amount_in_this_box):
                 for cushion_type in self.required_space:
                     if cushion_type in self.old_number[i]:
                         total_room_in_this_box += self.required_space[cushion_type]
